@@ -1,9 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import { Search, Filter, Download, CheckSquare, Square, MessageSquare, Globe, ChevronLeft, ChevronRight } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
-import { allData } from './data.js';
+import { allData } from '../data/data.js';
 // Import the censorExpletives function from ticketpage.jsx
-import { censorExpletives } from './ticketpage.jsx';
+import { censorExpletives } from '../utils/censor.js';
 
 const SchwinsightDemo = () => {
   const [searchTerm, setSearchTerm] = useState('');

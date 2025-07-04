@@ -1,11 +1,8 @@
 import React, { useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { Download, ArrowLeft } from 'lucide-react';
-import { allData } from './data.js';
-
-// Simple expletive censor (demo)
-export const censorExpletives = (text) =>
-  text.replace(/\b(fudge|crud|darn|heck|shoot|dang|gosh|drat|crud|blimey|shucks|rats|phooey|baloney|bullocks|jeez|golly|gee)\b/gi, '****');
+import { allData } from '../data/data.js';
+import { censorExpletives } from '../utils/censor.js';
 
 const TicketPage = () => {
   const { id } = useParams();
