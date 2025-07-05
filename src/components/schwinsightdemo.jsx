@@ -4,6 +4,8 @@ import { useNavigate } from 'react-router-dom';
 import { allData } from '../data/data.js';
 // Import the censorExpletives function from ticketpage.jsx
 import { censorExpletives } from '../utils/censor.js';
+import jsPDF from 'jspdf';
+import html2canvas from 'html2canvas';
 
 const SchwinsightDemo = () => {
   const [searchTerm, setSearchTerm] = useState('');
@@ -28,6 +30,145 @@ const SchwinsightDemo = () => {
   const digitalProducts = Array.from(new Set(allData.map(item => item.digitalOffering)));
 
   const navigate = useNavigate();
+
+
+
+  const handleExport = () => {
+    const selectedData = filteredSortedResults.filter(item => selectedItems.has(item.id));
+    
+    if (selectedData.length === 0) {
+      alert('Please select at least one item to export.');
+      return;
+    }
+    
+    const title = `Selected Feedback Items (${selectedData.length} items)`;
+    
+    // Create a temporary div to render the content for PDF generation
+    const tempDiv = document.createElement('div');
+    tempDiv.style.position = 'absolute';
+    tempDiv.style.left = '-9999px';
+    tempDiv.style.top = '0';
+    tempDiv.style.width = '800px';
+    tempDiv.style.padding = '20px';
+    tempDiv.style.backgroundColor = 'white';
+    tempDiv.style.fontFamily = 'Arial, sans-serif';
+    tempDiv.style.fontSize = '12px';
+    tempDiv.style.lineHeight = '1.4';
+    
+    const formatDate = (dateString) => {
+      return new Date(dateString).toLocaleDateString('en-US', {
+        year: 'numeric',
+        month: 'long',
+        day: 'numeric'
+      });
+    };
+
+    const redactSource = (source) => {
+      if (source.includes('Reddit')) return 'Reddit User';
+      if (source.includes('Twitter') || source.includes('X')) return 'X User';
+      if (source.includes('Facebook')) return 'Facebook User';
+      if (source.includes('Quora')) return 'Quora User';
+      if (source.includes('Employee')) return 'Employee';
+      return source;
+    };
+
+    // Generate the HTML content for PDF
+    tempDiv.innerHTML = `
+      <div style="text-align: center; border-bottom: 2px solid #005999; padding-bottom: 15px; margin-bottom: 20px;">
+        <h1 style="color: #005999; font-size: 24px; margin: 0 0 5px 0; font-weight: bold;">SchwabInsight Feedback Report</h1>
+        <p style="color: #666; font-size: 14px; margin: 0;">${title}</p>
+      </div>
+
+      <div style="background: #f8f9fa; padding: 12px; border-radius: 6px; margin-bottom: 20px; border-left: 3px solid #005999;">
+        <p style="margin: 3px 0; font-size: 11px; color: #555;"><strong>Export Date:</strong> ${formatDate(new Date())}</p>
+        <p style="margin: 3px 0; font-size: 11px; color: #555;"><strong>Total Items:</strong> ${selectedData.length}</p>
+        <p style="margin: 3px 0; font-size: 11px; color: #555;"><strong>Positive Feedback:</strong> ${selectedData.filter(item => item.sentiment === 'Positive').length}</p>
+        <p style="margin: 3px 0; font-size: 11px; color: #555;"><strong>Negative Feedback:</strong> ${selectedData.filter(item => item.sentiment === 'Negative').length}</p>
+        ${departmentFilter !== 'All' ? `<p style="margin: 3px 0; font-size: 11px; color: #555;"><strong>Department Filter:</strong> ${departmentFilter}</p>` : ''}
+        ${digitalProductFilter !== 'All' ? `<p style="margin: 3px 0; font-size: 11px; color: #555;"><strong>Product Filter:</strong> ${digitalProductFilter}</p>` : ''}
+      </div>
+
+      ${selectedData.length > 1 ? `
+      <div style="background: #e8f4fd; padding: 15px; border-radius: 6px; margin-bottom: 20px; border-left: 3px solid #005999;">
+        <h3 style="color: #005999; margin: 0 0 10px 0; font-size: 16px;">Summary Statistics</h3>
+        <div style="display: flex; gap: 20px; margin-bottom: 10px;">
+          <div style="text-align: center;">
+            <div style="font-size: 18px; font-weight: bold; color: #005999;">${selectedData.length}</div>
+            <div style="font-size: 10px; color: #666; text-transform: uppercase;">Total Items</div>
+          </div>
+          <div style="text-align: center;">
+            <div style="font-size: 18px; font-weight: bold; color: #005999;">${selectedData.filter(item => item.sentiment === 'Positive').length}</div>
+            <div style="font-size: 10px; color: #666; text-transform: uppercase;">Positive</div>
+          </div>
+          <div style="text-align: center;">
+            <div style="font-size: 18px; font-weight: bold; color: #005999;">${selectedData.filter(item => item.sentiment === 'Negative').length}</div>
+            <div style="font-size: 10px; color: #666; text-transform: uppercase;">Negative</div>
+          </div>
+          <div style="text-align: center;">
+            <div style="font-size: 18px; font-weight: bold; color: #005999;">${Array.from(new Set(selectedData.map(item => item.department))).length}</div>
+            <div style="font-size: 10px; color: #666; text-transform: uppercase;">Departments</div>
+          </div>
+        </div>
+      </div>
+      ` : ''}
+
+      ${selectedData.map((item, index) => `
+        <div style="border: 1px solid #e0e0e0; border-radius: 6px; padding: 15px; margin-bottom: 20px; background: white; page-break-inside: avoid;">
+          <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 12px; flex-wrap: wrap; gap: 8px;">
+            <div style="display: flex; gap: 12px; flex-wrap: wrap;">
+              <span style="background: #f0f8ff; padding: 3px 8px; border-radius: 3px; font-size: 10px; font-weight: 500;">ID: ${item.id}</span>
+              <span style="background: #f0f8ff; padding: 3px 8px; border-radius: 3px; font-size: 10px; font-weight: 500;">${item.digitalOffering}</span>
+              <span style="background: #f0f8ff; padding: 3px 8px; border-radius: 3px; font-size: 10px; font-weight: 500;">${item.department}</span>
+            </div>
+            <span style="padding: 3px 10px; border-radius: 15px; font-size: 10px; font-weight: bold; text-transform: uppercase; background: ${item.sentiment === 'Positive' ? '#d4edda' : '#f8d7da'}; color: ${item.sentiment === 'Positive' ? '#155724' : '#721c24'};">${item.sentiment}</span>
+          </div>
+          
+          <div style="font-size: 14px; font-weight: bold; color: #2c3e50; margin: 12px 0 8px 0; line-height: 1.3;">${item.titleSummary}</div>
+          
+          <div style="background: #f8f9fa; padding: 12px; border-radius: 4px; border-left: 3px solid #005999; margin: 12px 0; font-style: italic; color: #555; line-height: 1.4;">${censorExpletives(item.rawContent)}</div>
+          
+          <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 12px; padding-top: 12px; border-top: 1px solid #e0e0e0; font-size: 10px; color: #666;">
+            <div style="display: flex; align-items: center; gap: 5px;">
+              <span>📄 ${redactSource(item.source)}</span>
+            </div>
+            <span>${formatDate(item.dateAdded)}</span>
+          </div>
+        </div>
+      `).join('')}
+    `;
+
+    document.body.appendChild(tempDiv);
+
+    // Generate PDF
+    html2canvas(tempDiv, {
+      scale: 2,
+      useCORS: true,
+      allowTaint: true,
+      backgroundColor: '#ffffff'
+    }).then(canvas => {
+      const imgData = canvas.toDataURL('image/png');
+      const pdf = new jsPDF('p', 'mm', 'a4');
+      const imgWidth = 210;
+      const pageHeight = 295;
+      const imgHeight = (canvas.height * imgWidth) / canvas.width;
+      let heightLeft = imgHeight;
+
+      let position = 0;
+
+      pdf.addImage(imgData, 'PNG', 0, position, imgWidth, imgHeight);
+      heightLeft -= pageHeight;
+
+      while (heightLeft >= 0) {
+        position = heightLeft - imgHeight;
+        pdf.addPage();
+        pdf.addImage(imgData, 'PNG', 0, position, imgWidth, imgHeight);
+        heightLeft -= pageHeight;
+      }
+
+      pdf.save(`schwabinsight-feedback-${new Date().toISOString().split('T')[0]}.pdf`);
+      document.body.removeChild(tempDiv);
+    });
+  };
 
   // Add a function to reset all filters, search, and pagination
   const resetToHome = () => {
@@ -318,7 +459,10 @@ const SchwinsightDemo = () => {
             >
               Summarize
             </button>
-            <button className="px-4 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition-colors flex items-center gap-2">
+            <button 
+              className="px-4 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition-colors flex items-center gap-2"
+              onClick={handleExport}
+            >
               <Download className="h-4 w-4" />
               Export
             </button>
@@ -355,6 +499,12 @@ const SchwinsightDemo = () => {
                     <option value="Customer Support">Customer Support</option>
                     <option value="Product Team">Product Team</option>
                     <option value="Operations Team">Operations Team</option>
+                    <option value="HR Team">HR Team</option>
+                    <option value="Learning & Development">Learning & Development</option>
+                    <option value="Marketing Team">Marketing Team</option>
+                    <option value="Management">Management</option>
+                    <option value="IT Security">IT Security</option>
+                    <option value="Administrative Team">Administrative Team</option>
                   </select>
                 </div>
                 <div className="mb-4">
