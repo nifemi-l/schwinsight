@@ -14,7 +14,15 @@ const SchwinsightDemo = () => {
   const [selectedItems, setSelectedItems] = useState(new Set());
   const [showSummary, setShowSummary] = useState(false);
   const [summaryType, setSummaryType] = useState('');
-  const [searchResults, setSearchResults] = useState(allData);
+  // Filter out items with expletives from initial display
+  const filterExpletives = (data) => {
+    return data.filter(item => {
+      const censoredContent = censorExpletives(item.rawContent);
+      return censoredContent === item.rawContent; // Only include items that don't need censoring
+    });
+  };
+  
+  const [searchResults, setSearchResults] = useState(filterExpletives(allData));
   const [isLoading, setIsLoading] = useState(false);
   // Add state for sorting/filtering
   const [sortOption, setSortOption] = useState('newest');
@@ -178,7 +186,7 @@ const SchwinsightDemo = () => {
     setDigitalProductFilter('All');
     setSortOption('newest');
     setCurrentPage(1);
-    setSearchResults(allData);
+    setSearchResults(filterExpletives(allData));
   };
 
   // Search functionality with pre-parameterized queries
@@ -219,7 +227,8 @@ const SchwinsightDemo = () => {
       } else if (searchTerm.toLowerCase().includes('marketing')) {
         results = allData.filter(item => item.department === 'Marketing Team');
       } else if (searchTerm === '') {
-        results = allData;
+        // When search is empty, show filtered results (no expletives)
+        results = filterExpletives(allData);
       } else {
         results = allData.filter(item => 
           item.rawContent.toLowerCase().includes(searchTerm.toLowerCase()) ||
