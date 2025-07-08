@@ -38,6 +38,9 @@ const SchwinsightDemo = () => {
   const digitalProducts = Array.from(new Set(allData.map(item => item.digitalOffering)));
 
   const navigate = useNavigate();
+  const [clickCount, setClickCount] = useState(0);
+  const [lastClickTime, setLastClickTime] = useState(0);
+  const [showEasterEgg, setShowEasterEgg] = useState(false);
 
 
 
@@ -187,6 +190,35 @@ const SchwinsightDemo = () => {
     setSortOption('newest');
     setCurrentPage(1);
     setSearchResults(filterExpletives(allData));
+  };
+
+  // Handle triple-click on logo to go to video
+  const handleLogoClick = () => {
+    const currentTime = Date.now();
+    const timeDiff = currentTime - lastClickTime;
+    
+    if (timeDiff < 500) { // Within 500ms of last click
+      const newClickCount = clickCount + 1;
+      setClickCount(newClickCount);
+      
+      if (newClickCount >= 3) {
+        // Triple click detected - navigate to video
+        setShowEasterEgg(true);
+        setTimeout(() => {
+          navigate('/video');
+          setClickCount(0);
+          setLastClickTime(0);
+          setShowEasterEgg(false);
+        }, 500);
+      }
+    } else {
+      // Reset click count if too much time has passed
+      setClickCount(1);
+      // Single click - reset to home
+      resetToHome();
+    }
+    
+    setLastClickTime(currentTime);
   };
 
   // Search functionality with pre-parameterized queries
@@ -427,21 +459,33 @@ const SchwinsightDemo = () => {
 
   return (
     <div className="min-h-screen bg-gradient-to-b from-[#009DDB] to-[#33B9E6] p-6">
+      {/* Easter Egg Message */}
+      {showEasterEgg && (
+        <div className="fixed top-4 right-4 bg-yellow-400 text-yellow-900 px-4 py-2 rounded-lg shadow-lg z-50 animate-bounce">
+          🎬 Easter egg found! Taking you to the demo video...
+        </div>
+      )}
       <div className="max-w-6xl mx-auto">
         {/* Header */}
         <div className="bg-white rounded-lg shadow-lg p-6 mb-6">
           {/* Top: Schwinsight logo/title centered on its own row */}
-          <div className="flex justify-center mb-2">
+          <div className="flex justify-center mb-2 relative group">
             <span
-              className="text-3xl font-bold text-gray-800 text-center border-b-2 border-[#009DDB]/15 pb-2 select-none cursor-pointer"
+              className="text-3xl font-bold text-gray-800 text-center border-b-2 border-[#009DDB]/15 pb-2 select-none cursor-pointer transition-all duration-200 hover:border-[#009DDB]/30"
               style={{ fontFamily: '"Granjon LT Std", "Times New Roman", "Georgia", "Minion Pro", serif', fontStyle: 'italic' }}
-              onClick={resetToHome}
+              onClick={handleLogoClick}
               tabIndex={0}
               role="link"
-              aria-label="Go to Schwinsight home"
+              aria-label="Go to Schwinsight home (triple-click for video)"
             >
               Schwinsight
             </span>
+            {/* Subtle hint tooltip */}
+            <div className="absolute -bottom-8 left-1/2 transform -translate-x-1/2 opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none">
+              <div className="bg-gray-800 text-white text-xs px-2 py-1 rounded whitespace-nowrap">
+                Click to reset • Triple-click for video 🎬
+              </div>
+            </div>
           </div>
           {/* Second row: Summarize and Export buttons, aligned right */}
           <div className="flex items-center gap-2 mb-4">
